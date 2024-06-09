@@ -1,0 +1,18 @@
+[package]
+name = "ansiconst"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.73"
+authors = ["Macca Tech Ltd <info@macca.tech>", "Francis McKenzie <francis@macca.tech>"]
+description = "Library for declaring nestable ANSI styles in const context"
+license = "MIT"
+repository = "https://github.com/maccatech/ansiconst-rs"
+keywords = ["ansi", "term", "colour", "color", "style"]
+categories = ["command-line-interface"]
+
+[features]
+ansi256 = []
+rgb = ["ansi256"]
+
+[dependencies]
+bitflags = "2.5.0"
