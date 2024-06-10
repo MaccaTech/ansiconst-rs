@@ -15,6 +15,16 @@ pub struct AnsiWriter<W: io::Write + AnsiPreference> {
     writer: W,
 }
 
+impl<W: io::Write + AnsiPreference> AnsiWriter<W> {
+    /// Creates a new instance with the given `Writer` and ANSI style
+    #[inline]
+    pub fn new(writer: W, ansi: Ansi) -> Self { Self { writer, ansi } }
+    /// Creates a new instance with the given `Writer`, using its
+    /// [preferred](AnsiPreference::preferred_ansi) ANSI style.
+    #[inline]
+    pub fn default(writer: W) -> Self { Self { ansi: writer.preferred_ansi(), writer } }
+}
+
 impl<W: io::Write + AnsiPreference> AnsiWrite for AnsiWriter<W> {
     fn ansi(&self) -> Ansi { self.ansi }
     fn set_ansi(&mut self, ansi: Ansi) { self.ansi = ansi }
@@ -34,8 +44,4 @@ impl<W: io::Write + AnsiPreference> io::Write for AnsiWriter<W> {
     }
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> { self.writer.write(buf) }
     fn flush(&mut self) -> io::Result<()> { self.writer.flush() }
-}
-
-impl<T: io::IsTerminal> AnsiPreference for T {
-    fn is_ansi_preferred(&self) -> bool { self.is_terminal() }
 }
