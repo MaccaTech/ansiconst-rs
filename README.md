@@ -1,6 +1,6 @@
 # ansiconst
 
-[View the Rustdoc](https://docs.rs/ansiconst)
+### [View the Rustdoc](https://docs.rs/ansiconst)
 
 ## Ansi Constants
 
@@ -235,4 +235,37 @@ println!("This sentence shows another {} colours/effects.",
 [Ansi::protect_attrs]:   https://docs.rs/ansiconst/latest/ansiconst/struct.Ansi.html#method.protected_attrs
 [Ansi::only]:            https://docs.rs/ansiconst/latest/ansiconst/struct.Ansi.html#method.only
 
-License: MIT
+## Version History
+
+<table>
+<thead>
+<tr>
+    <th>Version</th>
+    <th>Date</th>
+    <th>Comments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+    <td>v0.1.1</td>
+    <td>10-Jun 2024</td>
+    <td>Bugfix/docs release
+        <ul>
+        <li>Fix handling of <code>FORCE_COLOR</code>, <code>NO_COLOR</code> env vars</li>
+        <li>Fix missing <code>fn</code> for creating <code>AnsiWriter</code> instances</li>
+        <li>Fix broken links in <code>README</code></li>
+        <li>Add more explanation to Rustdoc</li>
+        </ul>
+    </td>
+</tr>
+<tr>
+    <td>v0.1.0</td>
+    <td>09-Jun 2024</td>
+    <td>Initial release</td>
+    </td>
+</tr>
+</tbody>
+</table>
+
+## License
+MIT
