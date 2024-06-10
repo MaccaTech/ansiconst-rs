@@ -1,6 +1,6 @@
 [package]
 name = "ansiconst"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.73"
 authors = ["Macca Tech Ltd <info@macca.tech>", "Francis McKenzie <francis@macca.tech>"]
@@ -9,6 +9,9 @@ license = "MIT"
 repository = "https://github.com/maccatech/ansiconst-rs"
 keywords = ["ansi", "term", "colour", "color", "style"]
 categories = ["command-line-interface"]
+exclude = [
+    "generate_readme/*",
+]
 
 [features]
 ansi256 = []

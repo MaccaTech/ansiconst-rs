@@ -1,0 +1,9 @@
+[package]
+name = "generate"
+version = "0.1.0"
+edition = "2021"
+description = "Internal crate used to generate ansiconst crate's README from its rustdoc"
+
+[dependencies]
+cargo-readme = "3.3.1"
+regex = "1.10.5"

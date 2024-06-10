@@ -1,12 +1,20 @@
 # ansiconst
 
-[View the Rustdoc](https://docs.rs/ansiconst)
+### [View the Rustdoc](https://docs.rs/ansiconst)
+
+## Contents
+
+* [Motivation](#Motivation)
+* [Key Features](#Key-Features)
+* [Examples](#Examples-3)
+* [Version History](#Version-History)
+* [Licence](#Licence)
 
 ## Ansi Constants
 
 A library for declaring nestable ANSI styles in const context.
 
-#### Motivation
+### Motivation
 
 The primary motivation of this crate is to provide the ability to use
 ANSI colours/effects in command-line programs by identifying them
@@ -32,7 +40,9 @@ them with minimal overhead throughout a command-line program.
 There are other crates that provide terminal-styling functionality,
 but none appear to fully support the use-case outlined above.
 The API provided by this crate in support of this use-case is
-presented as follows:
+presented in the following section.
+
+### Key Features
 
 #### Compile-Time
 
@@ -70,7 +80,7 @@ assert_eq!(                 RESET_CODE, "\x1B[0m");
 [`Ansi`] instances are designed to be as small as possible. For example, [`Effect`]s
 are represented internally using bit flags rather than simple `bool`s.
 
-For this reason, the use of [`Ansi256`](Colour::Ansi256) and [`Rgb`](Colour::Rgb) colours
+For this reason, the use of [`Ansi256`][Colour::Ansi256] and [`Rgb`][Colour::Rgb] colours
 is gated behind feature flags, because supporting them means [`Ansi`] instances
 must be ever so slightly bigger. Consider the memory sizes:
 
@@ -127,7 +137,7 @@ sequences when transitioning between nesting levels.
 Additionally, nested ANSI codes can be disabled entirely, or on a per-attribute basis.
 Parent [`Ansi`]s can prevent nested [`Ansi`]s from rendering ANSI codes for any/all
 attributes by *protecting* those attributes in the outer [`Ansi`], using methods such as
-[`.protect_attrs()`](Ansi::protect_attrs) and [`.only()`](Ansi::only).
+[`.protect_attrs()`][Ansi::protect_attrs] and [`.only()`][Ansi::only].
 
 ###### Examples
 
@@ -173,7 +183,7 @@ _Note:_ automatic handling of nested styles is achieved by storing the last-appl
 ANSI style in a [`thread_local!`] static variable, and therefore this library
 requires `std`. See [`Styled<T>`] for details.
 
-## Examples
+### Examples
 
 ```rust
 use ansiconst::*;
@@ -230,7 +240,42 @@ println!("This sentence shows another {} colours/effects.",
 [`paintln!`]:            https://docs.rs/ansiconst/latest/ansiconst/macro.paintln.html
 [`epaint!`]:             https://docs.rs/ansiconst/latest/ansiconst/macro.epaint.html
 [`epaintln!`]:           https://docs.rs/ansiconst/latest/ansiconst/macro.epaintln.html
-[`Ansi256`]:             https://docs.rs/ansiconst/latest/ansiconst/enum.Colour.html#variant.Ansi256
-[`Rgb`]:                 https://docs.rs/ansiconst/latest/ansiconst/enum.Colour.html#variant.Rgb
+[Colour::Ansi256]:       https://docs.rs/ansiconst/latest/ansiconst/enum.Colour.html#variant.Ansi256
+[Colour::Rgb]:           https://docs.rs/ansiconst/latest/ansiconst/enum.Colour.html#variant.Rgb
+[Ansi::protect_attrs]:   https://docs.rs/ansiconst/latest/ansiconst/struct.Ansi.html#method.protected_attrs
+[Ansi::only]:            https://docs.rs/ansiconst/latest/ansiconst/struct.Ansi.html#method.only
 
-License: MIT
+## Version History
+
+<table>
+<thead>
+<tr>
+    <th>Version</th>
+    <th>Date</th>
+    <th>Comments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+    <td>v0.1.1</td>
+    <td>10-Jun 2024</td>
+    <td>Bugfix/docs release
+        <ul>
+        <li>Fix handling of <code>FORCE_COLOR</code>, <code>NO_COLOR</code> env vars</li>
+        <li>Fix missing <code>fn</code> for creating <code>AnsiWriter</code> instances</li>
+        <li>Fix broken links in <code>README</code></li>
+        <li>Add more explanation to Rustdoc</li>
+        </ul>
+    </td>
+</tr>
+<tr>
+    <td>v0.1.0</td>
+    <td>09-Jun 2024</td>
+    <td>Initial release</td>
+    </td>
+</tr>
+</tbody>
+</table>
+
+## Licence
+MIT
