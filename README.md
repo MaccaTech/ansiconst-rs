@@ -2,11 +2,19 @@
 
 ### [View the Rustdoc](https://docs.rs/ansiconst)
 
+## Contents
+
+* [Motivation](#Motivation)
+* [Key Features](#Key-Features)
+* [Examples](#Examples-3)
+* [Version History](#Version-History)
+* [Licence](#Licence)
+
 ## Ansi Constants
 
 A library for declaring nestable ANSI styles in const context.
 
-#### Motivation
+### Motivation
 
 The primary motivation of this crate is to provide the ability to use
 ANSI colours/effects in command-line programs by identifying them
@@ -32,7 +40,9 @@ them with minimal overhead throughout a command-line program.
 There are other crates that provide terminal-styling functionality,
 but none appear to fully support the use-case outlined above.
 The API provided by this crate in support of this use-case is
-presented as follows:
+presented in the following section.
+
+### Key Features
 
 #### Compile-Time
 
@@ -173,7 +183,7 @@ _Note:_ automatic handling of nested styles is achieved by storing the last-appl
 ANSI style in a [`thread_local!`] static variable, and therefore this library
 requires `std`. See [`Styled<T>`] for details.
 
-## Examples
+### Examples
 
 ```rust
 use ansiconst::*;
@@ -267,5 +277,5 @@ println!("This sentence shows another {} colours/effects.",
 </tbody>
 </table>
 
-## License
+## Licence
 MIT

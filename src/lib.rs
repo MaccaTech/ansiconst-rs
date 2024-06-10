@@ -2,7 +2,7 @@
 //!
 //! A library for declaring nestable ANSI styles in const context.
 //!
-//! ### Motivation
+//! ## Motivation
 //!
 //! The primary motivation of this crate is to provide the ability to use
 //! ANSI colours/effects in command-line programs by identifying them
@@ -28,7 +28,9 @@
 //! There are other crates that provide terminal-styling functionality,
 //! but none appear to fully support the use-case outlined above.
 //! The API provided by this crate in support of this use-case is
-//! presented as follows:
+//! presented in the following section.
+//!
+//! ## Key Features
 //!
 //! ### Compile-Time
 //!
@@ -169,7 +171,7 @@
 //! ANSI style in a [`thread_local!`] static variable, and therefore this library
 //! requires `std`. See [`Styled<T>`] for details.
 //!
-//! # Examples
+//! ## Examples
 //!
 //! ```
 //! use ansiconst::*;

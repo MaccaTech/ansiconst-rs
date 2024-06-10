@@ -2,6 +2,14 @@
 
 ### [View the Rustdoc](https://docs.rs/ansiconst)
 
+## Contents
+
+* [Motivation](#Motivation)
+* [Key Features](#Key-Features)
+* [Examples](#Examples-3)
+* [Version History](#Version-History)
+* [Licence](#Licence)
+
 {{readme}}
 
 [`print!`]:              https://doc.rust-lang.org/std/macro.print.html
@@ -64,5 +72,5 @@
 </tbody>
 </table>
 
-## License
+## Licence
 {{license}}
