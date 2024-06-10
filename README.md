@@ -70,7 +70,7 @@ assert_eq!(                 RESET_CODE, "\x1B[0m");
 [`Ansi`] instances are designed to be as small as possible. For example, [`Effect`]s
 are represented internally using bit flags rather than simple `bool`s.
 
-For this reason, the use of [`Ansi256`](Colour::Ansi256) and [`Rgb`](Colour::Rgb) colours
+For this reason, the use of [`Ansi256`][Colour::Ansi256] and [`Rgb`][Colour::Rgb] colours
 is gated behind feature flags, because supporting them means [`Ansi`] instances
 must be ever so slightly bigger. Consider the memory sizes:
 
@@ -127,7 +127,7 @@ sequences when transitioning between nesting levels.
 Additionally, nested ANSI codes can be disabled entirely, or on a per-attribute basis.
 Parent [`Ansi`]s can prevent nested [`Ansi`]s from rendering ANSI codes for any/all
 attributes by *protecting* those attributes in the outer [`Ansi`], using methods such as
-[`.protect_attrs()`](Ansi::protect_attrs) and [`.only()`](Ansi::only).
+[`.protect_attrs()`][Ansi::protect_attrs] and [`.only()`][Ansi::only].
 
 ###### Examples
 
@@ -230,7 +230,9 @@ println!("This sentence shows another {} colours/effects.",
 [`paintln!`]:            https://docs.rs/ansiconst/latest/ansiconst/macro.paintln.html
 [`epaint!`]:             https://docs.rs/ansiconst/latest/ansiconst/macro.epaint.html
 [`epaintln!`]:           https://docs.rs/ansiconst/latest/ansiconst/macro.epaintln.html
-[`Ansi256`]:             https://docs.rs/ansiconst/latest/ansiconst/enum.Colour.html#variant.Ansi256
-[`Rgb`]:                 https://docs.rs/ansiconst/latest/ansiconst/enum.Colour.html#variant.Rgb
+[Colour::Ansi256]:       https://docs.rs/ansiconst/latest/ansiconst/enum.Colour.html#variant.Ansi256
+[Colour::Rgb]:           https://docs.rs/ansiconst/latest/ansiconst/enum.Colour.html#variant.Rgb
+[Ansi::protect_attrs]:   https://docs.rs/ansiconst/latest/ansiconst/struct.Ansi.html#method.protected_attrs
+[Ansi::only]:            https://docs.rs/ansiconst/latest/ansiconst/struct.Ansi.html#method.only
 
 License: MIT

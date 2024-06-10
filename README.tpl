@@ -27,7 +27,9 @@
 [`paintln!`]:            https://docs.rs/ansiconst/latest/ansiconst/macro.paintln.html
 [`epaint!`]:             https://docs.rs/ansiconst/latest/ansiconst/macro.epaint.html
 [`epaintln!`]:           https://docs.rs/ansiconst/latest/ansiconst/macro.epaintln.html
-[`Ansi256`]:             https://docs.rs/ansiconst/latest/ansiconst/enum.Colour.html#variant.Ansi256
-[`Rgb`]:                 https://docs.rs/ansiconst/latest/ansiconst/enum.Colour.html#variant.Rgb
+[Colour::Ansi256]:       https://docs.rs/ansiconst/latest/ansiconst/enum.Colour.html#variant.Ansi256
+[Colour::Rgb]:           https://docs.rs/ansiconst/latest/ansiconst/enum.Colour.html#variant.Rgb
+[Ansi::protect_attrs]:   https://docs.rs/ansiconst/latest/ansiconst/struct.Ansi.html#method.protected_attrs
+[Ansi::only]:            https://docs.rs/ansiconst/latest/ansiconst/struct.Ansi.html#method.only
 
 License: {{license}}
