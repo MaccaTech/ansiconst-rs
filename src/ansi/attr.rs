@@ -1,40 +1,87 @@
-use bitflags::bitflags;
+use super::{color, effect};
 use std::fmt;
 
-bitflags! {
-    /// A bitmask used to select an arbitrary combination of [`Ansi`](crate::Ansi) attributes.
+/// An optimised struct that packs the following information into a u16,
+/// by making the most efficient use of available bits:
+///
+/// 1. `no_ansi` flag
+/// 2. `important` attrs
+#[derive(PartialEq, Eq, Clone, Copy, fmt::Debug)]
+pub(super) struct Flags {
+    bits: u16,
+}
+
+impl Flags {
+    /// The below is an ugly way of ensuring **at compile time** that
+    /// this const value does not conflict with the bits used by
+    /// `effect::Attrs` and `color::Attrs`. I.e. there is at least
+    /// one spare bit available.
     ///
-    /// See [`Ansi::filter()`](crate::Ansi::filter()) and [`Ansi::protect_attrs()`](crate::Ansi::protect_attrs()).
-    #[derive(PartialEq, Eq, Clone, Copy, fmt::Debug)]
-    pub struct Attrs: u16 {
-        /// Matches ANSI effects [`Bold`](crate::Effect::Bold) and [`NotBold`](crate::Effect::NotBold)
-        const Bold       = 1 << 0;
-        /// Matches ANSI effects [`Faint`](crate::Effect::Faint) and [`NotFaint`](crate::Effect::NotFaint)
-        const Faint      = 1 << 1;
-        /// Matches ANSI effects [`Italic`](crate::Effect::Italic) and [`NotItalic`](crate::Effect::NotItalic)
-        const Italic     = 1 << 2;
-        /// Matches ANSI effects [`Underline`](crate::Effect::Underline) and [`NotUnderline`](crate::Effect::NotUnderline)
-        const Underline  = 1 << 3;
-        /// Matches ANSI effects [`Blink`](crate::Effect::Blink) and [`NotBlink`](crate::Effect::NotBlink)
-        const Blink      = 1 << 4;
-        /// Matches ANSI effects [`Reverse`](crate::Effect::Reverse) and [`NotReverse`](crate::Effect::NotReverse)
-        const Reverse    = 1 << 5;
-        /// Matches ANSI effects [`Hidden`](crate::Effect::Hidden) and [`NotHidden`](crate::Effect::NotHidden)
-        const Hidden     = 1 << 6;
-        /// Matches ANSI effects [`Strike`](crate::Effect::Strike) and [`NotStrike`](crate::Effect::NotStrike)
-        const Strike     = 1 << 7;
-        /// Matches ANSI *foreground* [`Colour`](crate::Colour)
-        const Foreground = 1 << 8;
-        /// Matches ANSI *background* [`Colour`](crate::Colour)
-        const Background = 1 << 9;
+    /// If there are no spare bits, compilation will fail with the following error:
+    /// "attempt to shift left by `8_u32`, which would overflow"
+    const NO_ANSI: u16 = Self::from_important(Attrs::new(
+        effect::Attrs::empty(),
+        color::Attrs::from_bits_retain(1 << color::Attrs::all().bits().count_ones())),
+    ).bits;
+
+    #[inline]
+    pub(super) const fn empty() -> Self { Self { bits: 0 } }
+    #[inline]
+    pub(super) const fn no_ansi() -> Self { Self { bits: Self::NO_ANSI } }
+    #[inline]
+    pub(super) const fn is_no_ansi(&self) -> bool { self.bits == Self::NO_ANSI }
+    #[inline]
+    pub(super) const fn important(&self) -> Attrs {
+        if self.is_no_ansi() { return Attrs::empty(); }
+
+        Attrs {
+            effect: effect::Attrs::from_bits_truncate((self.bits >> (8 * 0)) as u8),
+            color:  color::Attrs::from_bits_truncate ((self.bits >> (8 * 1)) as u8),
+        }
+    }
+    #[inline]
+    pub(super) const fn from_important(attrs: Attrs) -> Self {
+        Self {
+            bits: (attrs.effect.bits() as u16) << (8 * 0)
+                | (attrs.color .bits() as u16) << (8 * 1)
+        }
     }
 }
 
+#[derive(PartialEq, Eq, Clone, Copy, fmt::Debug)]
+pub(super) struct Attrs {
+    pub(super) effect: effect::Attrs,
+    pub(super) color:  color::Attrs,
+}
+
 impl Attrs {
-    /// Gets the `Attr` corresponding to both foreground and background [`Colour`](crate::Colour)s
     #[inline]
-    pub const fn colours() -> Self { Self::Foreground.union(Self::Background) }
-    /// Gets the `Attr` corresponding to all [`Effect`](crate::Effect)s
+    pub(super) const fn empty() -> Self {
+        Self { effect: effect::Attrs::empty(), color: color::Attrs::empty() }
+    }
     #[inline]
-    pub const fn effects() -> Self { Self::Bold.union(Self::Faint).union(Self::Italic).union(Self::Underline).union(Self::Blink).union(Self::Reverse).union(Self::Hidden).union(Self::Strike) }
+    pub(super) const fn new(effect: effect::Attrs, color: color::Attrs) -> Self {
+        Self { effect, color }
+    }
+    #[inline]
+    pub(super) const fn union(&self, other: Attrs) -> Self {
+        Self {
+            effect: self.effect.union(other.effect),
+            color: self.color.union(other.color),
+        }
+    }
+    #[inline]
+    pub(super) const fn difference(&self, other: Attrs) -> Self {
+        Self {
+            effect: self.effect.difference(other.effect),
+            color: self.color.difference(other.color),
+        }
+    }
+    #[inline]
+    pub(super) const fn intersection(&self, other: Attrs) -> Self {
+        Self {
+            effect: self.effect.intersection(other.effect),
+            color: self.color.intersection(other.color),
+        }
+    }
 }

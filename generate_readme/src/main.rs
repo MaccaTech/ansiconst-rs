@@ -26,6 +26,11 @@ fn main() {
     //     [`.only()`](Ansi::only)
     //     [`.only()`][Ansi::only]
     readme = Regex::new(r"\[(`[^\]]+`)\]\(([^\)]+)\)").unwrap().replace_all(&readme, "[$1][$2]").to_string();
+    // Restore external links in README that need curved brackets but are now square!
+    // E.g.:
+    //     [example][https://example]
+    //     [example](https://example)
+    readme = Regex::new(r"\[(`[^\]]+`)\]\[(https:\/\/[^\]]+)\]").unwrap().replace_all(&readme, "[$1]($2)").to_string();
 
     println!("{}", readme)
 }

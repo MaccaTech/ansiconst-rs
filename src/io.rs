@@ -5,7 +5,7 @@
 //! simple `println!`, for example:
 //!
 //! ```
-//! use ansiconst::{*, Colour::Red, Effect::Bold};
+//! use ansiconst::styled;
 //!
 //! // Note this uses standard println! that writes to std::io::Stdout
 //! // (i.e. no ANSI-specific writer involved)
@@ -32,7 +32,7 @@
 //! // This example assumes no relevant environment variables (FORCE_COLOR, NO_COLOR)
 //! // have been set, and this is running on a terminal/tty.
 //!
-//! use ansiconst::{paintln, io::{ansiout, AnsiWrite}, Colour::Purple};
+//! use ansiconst::{paintln, io::{ansiout, AnsiWrite}};
 //!
 //! // Prints "\x1B[35mPurple\x1B[39m\n"
 //! paintln!(Purple, "Purple");
@@ -115,7 +115,7 @@ pub trait AnsiPreference {
         } else {
             self.is_ansi_preferred()
         };
-        if is_enabled { Ansi::unspecified() } else { Ansi::no_ansi() }
+        if is_enabled { Ansi::empty() } else { Ansi::no_ansi() }
     }
 }
 
@@ -148,13 +148,13 @@ pub trait AnsiWrite: io::Write + AnsiPreference {
     /// ### Examples
     ///
     /// ```
-    /// use ansiconst::{*, io::*, Colour::*};
+    /// use ansiconst::{ansi, paintln, io::{self, AnsiWrite}};
     ///
-    /// io::ansiout().set_ansi(Red.only());
+    /// io::ansiout().set_ansi(ansi!(Red.only()));
     /// paintln!(Blue, "Hello world");
-    /// // Prints "\x1B[31mHello world\x1B[39m", i.e. red colour (not blue)
+    /// // Prints "\x1B[31mHello world\x1B[39m", i.e. red color (not blue)
     ///
-    /// io::ansiout().set_ansi(Ansi::no_ansi());
+    /// io::ansiout().set_ansi(ansi!(Ansi::no_ansi()));
     /// paintln!(Red, "Hello world");
     /// // Prints "Hello world", i.e. without any ANSI codes
     ///
@@ -173,11 +173,11 @@ pub trait AnsiWrite: io::Write + AnsiPreference {
     /// ### Examples
     ///
     /// ```
-    /// use ansiconst::{*, io::*, Colour::*};
+    /// use ansiconst::{paintln, io::{self, AnsiWrite}};
     ///
     /// io::ansiout().all_ansi();
     /// paintln!(Red, "Hello world");
-    /// // Prints "\x1B[31mHello world\x1B[39m", i.e. red colour
+    /// // Prints "\x1B[31mHello world\x1B[39m", i.e. red color
     ///
     /// io::ansiout().no_ansi();
     /// paintln!(Red, "Hello world");
@@ -199,7 +199,7 @@ pub trait AnsiWrite: io::Write + AnsiPreference {
     ///
     /// See [`no_ansi()`](AnsiWrite::no_ansi) for examples.
     fn all_ansi(&mut self) {
-        self.set_ansi(Ansi::unspecified())
+        self.set_ansi(Ansi::empty())
     }
 
     /// Sets this `Writer`'s default [`Ansi`](AnsiWrite::set_ansi()) style to

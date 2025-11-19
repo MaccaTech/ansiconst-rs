@@ -12,10 +12,10 @@ fn check_line<'a>(got: &'a str, expect: &'static str) {
 }
 
 #[test]
-fn test_output_noansi() {
+fn test_output_no_ansi() {
     let output = Command::new("cargo")
         .env("FORCE_COLOR", "1")
-        .args(&["test", "test_noansi", "--quiet", "--", "--nocapture", "--include-ignored"])
+        .args(&["test", "test_no_ansi", "--quiet", "--", "--nocapture", "--include-ignored"])
         .output().unwrap();
     let stdout = str::from_utf8(&output.stdout).unwrap();
     let stderr = str::from_utf8(&output.stderr).unwrap();
@@ -32,26 +32,26 @@ fn test_output_noansi() {
 
 #[test]
 #[ignore = "used by output test"]
-fn test_noansi() {
+fn test_no_ansi() {
     // Stdout
     println!("[test_start]");
-    paintln!(Effect::Bold, Colour::Red, "ansi");
+    paintln!(Bold, Red, "ansi");
     io::ansiout().all_ansi();
     assert!(io::ansiout().is_all_ansi());
-    paintln!(Effect::Bold, Colour::Red, "all ansi");
+    paintln!(Bold, Red, "all ansi");
     io::ansiout().no_ansi();
     assert!(io::ansiout().is_no_ansi());
-    paintln!(Effect::Bold, Colour::Red, "no ansi");
+    paintln!(Bold, Red, "no ansi");
     println!("[test_end]");
 
     // Stderr
     eprintln!("[test_start]");
-    epaintln!(Effect::Bold, Colour::Red, "ansi");
+    epaintln!(Bold, Red, "ansi");
     io::ansierr().all_ansi();
     assert!(io::ansierr().is_all_ansi());
-    epaintln!(Effect::Bold, Colour::Red, "all ansi");
+    epaintln!(Bold, Red, "all ansi");
     io::ansierr().no_ansi();
     assert!(io::ansierr().is_no_ansi());
-    epaintln!(Effect::Bold, Colour::Red, "no ansi");
+    epaintln!(Bold, Red, "no ansi");
     eprintln!("[test_end]");
 }
