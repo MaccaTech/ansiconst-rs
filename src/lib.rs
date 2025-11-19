@@ -5,7 +5,7 @@
 //! ## Motivation
 //!
 //! The primary motivation of this crate is to provide the ability to use
-//! ANSI colours/effects in command-line programs by identifying them
+//! ANSI colors/effects in command-line programs by identifying them
 //! *semantically* rather than *literally*.
 //!
 //! For example, when calling [`println!`], instead of applying the style
@@ -40,14 +40,12 @@
 //! ##### Examples
 //!
 //! ```
-//! use ansiconst::*;
-//! use ansiconst::Colour::{Green, Blue};
-//! use ansiconst::Effect::{Bold, Underline, Italic};
+//! use ansiconst::{Ansi, ansi, ansi_code};
 //!
 //! // Define styles as Ansi structs:
 //! const    HEADING_ANSI: Ansi = ansi!(Green, Bold, Underline);
 //! const SUBHEADING_ANSI: Ansi = ansi!(Blue, Italic);
-//! const      RESET_ANSI: Ansi = Ansi::reset();
+//! const      RESET_ANSI: Ansi = ansi!(Ansi::reset());
 //!
 //! assert_eq!(   HEADING_ANSI.to_string(), "\x1B[1;4;32m");
 //! assert_eq!(SUBHEADING_ANSI.to_string(), "\x1B[3;34m");
@@ -68,16 +66,16 @@
 //! [`Ansi`] instances are designed to be as small as possible. For example, [`Effect`]s
 //! are represented internally using bit flags rather than simple `bool`s.
 //!
-//! For this reason, the use of [`Ansi256`](Colour::Ansi256) and [`Rgb`](Colour::Rgb) colours
+//! For this reason, the use of [`8-bit`](Color::num) and [`RGB`](Color::rgb) colors
 //! is gated behind feature flags, because supporting them means [`Ansi`] instances
 //! must be ever so slightly bigger. Consider the memory sizes:
 //!
-//! | Type                   | Bytes |
-//! |------------------------|-------|
-//! | `Ansi`                 |    6  |
-//! | `Ansi feature=Ansi256` |    8  |
-//! | `Ansi feature=Rgb`     |   12  |
-//! | `&'static str`         |   16  |
+//! | Type                      | Bytes |
+//! |---------------------------|:-----:|
+//! | `Ansi`                    |     6 |
+//! | `Ansi feature="color256"` |     8 |
+//! | `Ansi feature="rgb"`      |    12 |
+//! | `&'static str`            |    16 |
 //!
 //! ### Simple Macros
 //!
@@ -94,12 +92,14 @@
 //! ##### Examples
 //!
 //! ```
-//! use ansiconst::{*, Colour::Red, Effect::Bold};
+//! use ansiconst::{styled, styled_format, styled_format_args, styled_writeln};
+//! use ansiconst::{paintln, epaintln};
 //!
+//! // Notice how "Red" and "Bold" are automatically available inside the macros.
 //! let pet = "cat";
 //! let age = 5;
 //! let string1 =             styled!(Red, Bold, "My cat is 5 years old").to_string();
-//! let string2 =      styled_format!(Red, Bold, "My {} is {} years old", pet, age);
+//! let string2 =      styled_format!(Red, Bold, "My {} is {} years old", pet, age).to_string();
 //! let string3 = styled_format_args!(Red, Bold, "My {} is {} years old", pet, age).to_string();
 //!
 //! assert_eq!(string1, "\x1B[1;31mMy cat is 5 years old\x1B[22;39m");
@@ -112,9 +112,9 @@
 //!
 //! // Write "\x1B[1;31mMy cat is 5 years old\x1B[22;39m\n" to a writer:
 //! use std::fmt::Write;
-//! let mut sink = String::new();
-//! styled_writeln!(&mut sink, Red, Bold, "My {} is {} years old", pet, age).unwrap();
-//! assert_eq!(sink, "\x1B[1;31mMy cat is 5 years old\x1B[22;39m\n");
+//! let mut buffer = String::new();
+//! styled_writeln!(&mut buffer, Red, Bold, "My {} is {} years old", pet, age).unwrap();
+//! assert_eq!(buffer, "\x1B[1;31mMy cat is 5 years old\x1B[22;39m\n");
 //! ```
 //!
 //! ### Effortless Nesting
@@ -122,67 +122,69 @@
 //! Nesting of ANSI codes is automatically handled, and uses the minimum ANSI code
 //! sequences when transitioning between nesting levels.
 //!
-//! Additionally, nested ANSI codes can be disabled entirely, or on a per-attribute basis.
-//! Parent [`Ansi`]s can prevent nested [`Ansi`]s from rendering ANSI codes for any/all
-//! attributes by *protecting* those attributes in the outer [`Ansi`], using methods such as
-//! [`.protect_attrs()`](Ansi::protect_attrs) and [`.only()`](Ansi::only).
+//! Additionally, nested ANSI codes can be effectively disabled by setting an
+//! [`important`](Ansi::important) modifier on the outer [`Ansi`]'s attributes.
+//! This works similarly to HTML's CSS [`!important`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/important)
+//! rule, in that an inner `normal` attribute is ignored if the same outer attribute
+//! is `important`.
+//!
+//! Furthermore, nested [`Ansi`]s can prevent automatic inheriting of the style attributes
+//! of enclosing [`Ansi`]s by explicitly resetting them using [`only`](Ansi::only).
+//! Finally, nested [`Ansi`]s can be disabled entirely with [`no_ansi`](Ansi::no_ansi).
 //!
 //! ##### Examples
 //!
 //! ```
-//! use ansiconst::{*, Effect::{Bold, Underline}};
+//! use ansiconst::{Styled, styled, styled_format_args};
 //!
-//! const INNER:           Styled<&str> = styled!(Underline,        "Inner");
-//! const INNER_PROTECTED: Styled<&str> = styled!(Underline.only(), "Inner");
+//! const INNER:           Styled<&str> = styled!(Underline,             "Inner");
+//! const INNER_ONLY:      Styled<&str> = styled!(Underline.only(),      "Inner");
+//! const INNER_IMPORTANT: Styled<&str> = styled!(Underline.important(), "Inner");
 //!
 //! // Example 1: blended styles
 //! assert_eq!(
-//!     styled_format!(Bold, "Bold {INNER} Bold again"),
+//!     styled_format_args!(Bold, "Bold {INNER} Bold again").to_string(),
 //!     // "Inner" is both Bold and Underline
 //!     "\x1B[1mBold \x1B[4mInner\x1B[24m Bold again\x1B[22m"
 //! );
 //!
-//! // Example 2: protected inner style
+//! // Example 2: inner style only
 //! assert_eq!(
-//!     styled_format!(Bold, "Bold {INNER_PROTECTED} Bold again"),
+//!     styled_format_args!(Bold, "Bold {INNER_ONLY} Bold again").to_string(),
 //!     // "Inner" is not Bold, only Underline, due to inner's .only()
 //!     "\x1B[1mBold \x1B[22;4mInner\x1B[24;1m Bold again\x1B[22m"
 //! );
 //!
-//! // Example 3: protected outer style
+//! // Example 3: outer style only + important
 //! assert_eq!(
-//!     // Note: outer Bold.only() this time
-//!     styled_format!(Bold.only(), "Bold {INNER} Bold again"),
-//!     // Entire string is Bold, nested Underline was ignored
-//!     "\x1B[1mBold Inner Bold again\x1B[22m"
+//!     styled_format_args!(Bold.only().important(), "Bold {INNER_ONLY} Bold again").to_string(),
+//!     // Entire string is Bold, nested Underline was ignored due to .only().important()
+//!     "\x1B[0;1mBold Inner Bold again\x1B[22m"
 //! );
 //!
-//! // Example 4: both protected
+//! // Example 4: both important
 //! assert_eq!(
-//!     // Note: Bold.only() again
-//!     styled_format!(Bold.only(), "Bold {INNER_PROTECTED} Bold again"),
-//!     // Entire string is Bold, because outer's .only() takes precedence over inner's
-//!     "\x1B[1mBold Inner Bold again\x1B[22m"
+//!     styled_format_args!(Bold.only().important(), "Bold {INNER_IMPORTANT} Bold again").to_string(),
+//!     // "Inner" is Bold and Underline, due to inner's .important()
+//!     "\x1B[0;1mBold \x1B[4mInner\x1B[24m Bold again\x1B[22m"
 //! );
 //!
 //! ```
 //!
 //! _Note:_ automatic handling of nested styles is achieved by storing the last-applied
 //! ANSI style in a [`thread_local!`] static variable, and therefore this library
-//! requires `std`. See [`Styled<T>`] for details.
+//! requires `std`. See [`Styled<T>`] and [`StyledString`] for details.
 //!
 //! ## Examples
 //!
 //! ```
-//! use ansiconst::*;
-//! use ansiconst::Colour::{Green, Cyan, Yellow, Purple};
-//! use ansiconst::Effect::{Bold, NotBold, Italic, Underline, Blink};
+//! use ansiconst::{Ansi, ansi, paintln, styled_format_args};
 //!
 //! const HEADING:    Ansi = ansi!(Green, Bold, Underline);
 //! const SUBHEADING: Ansi = ansi!(Cyan, Italic);
 //! const STRONG:     Ansi = ansi!(Yellow, Bold);
 //! const STRONGER:   Ansi = ansi!(Blink);
-//! const STRONGEST:  Ansi = ansi!(Purple, NotBold);
+//! const STRONGEST:  Ansi = ansi!(Purple, Bold.not());
 //!
 //! // Styling with paintln!
 //! paintln!(HEADING,    "The Book of Rust");
@@ -198,37 +200,55 @@
 //!         )
 //!     )
 //! );
-//! println!("This sentence shows another {} colours/effects.",
+//! println!("This sentence shows another {} colors/effects.",
 //!     styled_format_args!(Green, Italic, "way of styling {} i.e. with inline",
 //!         styled_format_args!(Yellow, Bold, "your text,")
 //!     )
 //! );
 //! ```
+//! ## Upgrading from v0.1.x
+//!
+//! Required actions due to breaking changes:
+//!
+//! - Rename `ansiconst::Colour` to `ansiconst::Color`, or omit this import entirely,
+//! since color names (e.g. `Red`) are now automatically available inside API macros.
+//! - Rename `features = ["ansi256"]` to `features = ["color256"]` inside `Cargo.toml`.
+//! - Rename `Colour::Ansi256(n)` to [`Color::num(n)`](Color::num).
+//! - Rename `Colour::Rgb(r,g,b)` to [`Color::rgb(r,g,b)`](Color::rgb).
+//! - Rename `Color::Unspecified`, `Effect::Unspecified` to [`Ansi::empty()`].
+//! - Rename `Effect::NotBold` to [`Effect::Bold.not()`](Effect::not) (same for other effects).
+//! - Rename `styled_format!(...)` to [`styled_format!(...).to_string()`](`styled_format!`) or
+//! [`styled_format_args!(...).to_string()`](`styled_format_args!`).
 
 mod ansi;
+mod color;
+mod effect;
 mod fmt;
+pub mod introspect;
 pub mod io;
 pub(crate) mod write;
 #[doc(hidden)]
 pub mod str;
 
-pub use ansi::{Ansi, Attrs, Colour, Effect};
-pub use fmt::Styled;
+pub(crate) use ansi::{Toggle, ToggleColor};
+pub use ansi::Ansi;
+pub use color::{Color, ColorReset, Coloree};
+pub use effect::Effect;
+pub use fmt::{Styled, StyledString};
 
 /// Creates an ANSI style as an [`Ansi`] `const`.
 ///
-/// Accepts any number of [`Ansi`]s, [`Colour`]s, [`Effect`]s or any values with an
-/// `ansi()` method.
+/// Accepts any number of [`Ansi`]s, [`Color`]s, [`Effect`]s or any values with an
+/// [`ansi()`](Ansi::ansi) method.
 ///
 /// The benefit of an [`Ansi`] `const` over a `&'static str` ANSI code is that
-/// nesting of styles is handled automatically. See [`Styled<T>`] for details.
+/// nesting of styles is handled automatically. See [`Styled<T>`] and [`StyledString`]
+/// for details.
 ///
 /// ### Example
 ///
 /// ```
-/// use ansiconst::*;
-/// use ansiconst::Colour::{Green, Blue};
-/// use ansiconst::Effect::{Bold, Underline, Italic};
+/// use ansiconst::{Ansi, ansi};
 ///
 /// const MY_ANSI: Ansi = ansi!(Green, Blue.bg(), Bold, Underline, Italic);
 ///
@@ -237,26 +257,24 @@ pub use fmt::Styled;
 #[macro_export]
 macro_rules! ansi {
     // Base case:
-    () => ($crate::Ansi::unspecified());
+    () => ($crate::Ansi::empty());
     // Base case:
-    ($x:expr) => ($x.ansi());
+    ($x:expr $(,)?) => ({ #![allow(unused_imports)] use $crate::{Ansi, Color::{self, *}, Effect::*}; $x }.ansi());
     // Recurse:
-    ($x:expr, $($y:expr),+) => (
-        $x.ansi().add($crate::ansi!($($y),+))
+    ($x:expr, $($y:expr),+ $(,)?) => (
+        { #![allow(unused_imports)] use $crate::{Ansi, Color::{self, *}, Effect::*}; $x }.ansi().add($crate::ansi!($($y),+))
     )
 }
 
 /// Creates an ANSI style as a `&'static str`.
 ///
-/// Accepts any number of [`Ansi`]s, [`Colour`]s, [`Effect`]s or any values with an
-/// `ansi()` method.
+/// Accepts any number of [`Ansi`]s, [`Color`]s, [`Effect`]s or any values with an
+/// [`ansi()`](Ansi::ansi) method.
 ///
 /// ### Example
 ///
 /// ```
-/// use ansiconst::*;
-/// use ansiconst::Colour::{Green, Blue};
-/// use ansiconst::Effect::{Bold, Underline, Italic};
+/// use ansiconst::ansi_code;
 ///
 /// const MY_ANSI: &str = ansi_code!(Green, Blue.bg(), Bold, Underline, Italic);
 ///
@@ -264,15 +282,15 @@ macro_rules! ansi {
 /// ```
 #[macro_export]
 macro_rules! ansi_code {
-    ($ansi:expr) => {{
-        const CODES: $crate::str::Buffer<[u8;25]> = $crate::str::Buffer::from_ansi($ansi.ansi());
+    ($ansi:expr $(,)?) => {{
+        const CODES: $crate::str::Buffer<[u8;25]> = $crate::str::Buffer::from_ansi($crate::ansi!($ansi));
         const BYTES_LEN: usize                    = $crate::str::len_as_ansi_bytes(&CODES);
         const BYTES: [u8; BYTES_LEN]              = $crate::str::to_ansi_bytes::<BYTES_LEN>(&CODES);
         const BYTES_PTR: *const [u8]              = &BYTES;
         const STR: &str                           = unsafe { std::mem::transmute(BYTES_PTR) };
         STR
     }};
-    ($($ansi:expr),+) => {{
+    ($($ansi:expr),+ $(,)?) => {{
         const ANSI: $crate::Ansi = $crate::ansi!($($ansi),+);
         $crate::ansi_code!(ANSI)
     }}
@@ -280,14 +298,14 @@ macro_rules! ansi_code {
 
 /// Creates an ANSI-styled value.
 ///
-/// Accepts any number of [`Ansi`]s, [`Colour`]s, [`Effect`]s or any values with an
-/// `ansi()` method, followed by the final argument that is an instance of `T`.
+/// Accepts any number of [`Ansi`]s, [`Color`]s, [`Effect`]s or any values with an
+/// [`ansi()`](Ansi::ansi) method, followed by the final argument that is an instance of `T`.
 ///
 /// Returns a [`Styled<T>`].
 ///
 /// ### Example
 /// ```
-/// use ansiconst::{*, Colour::Red, Effect::{Italic, Blink}};
+/// use ansiconst::{Styled, styled};
 ///
 /// const HELLO: Styled<&str> = styled!(Red.bg(), Italic, Blink, "Hello World!");
 ///
@@ -296,54 +314,64 @@ macro_rules! ansi_code {
 #[macro_export]
 macro_rules! styled {
     // Base case:
-    ($ansi:expr, $target:expr) => ($crate::Styled::new($ansi.ansi(), $target));
+    ($ansi:expr, $target:expr) => ($crate::Styled::new($crate::ansi!($ansi), $target));
     // Recurse:
     ($x:expr, $y:expr, $($args:tt)+) => (
-        $crate::styled!($x.ansi().add($y.ansi()), $($args)+)
+        $crate::styled!($crate::ansi!($x).add($crate::ansi!($y)), $($args)+)
     )
 }
 
-/// Like [`format!`] except creates an ANSI-styled `String`.
+/// Like [`format!`] except creates an ANSI [`StyledString`].
 ///
 /// The syntax is the same as [`format!`], except that any parameters before the
-/// format literal must be either instances of [`Ansi`], [`Colour`] or [`Effect`],
-/// or else values that have an `ansi()` method.
+/// format literal must be either instances of [`Ansi`], [`Color`] or [`Effect`],
+/// or else values that have an [`ansi()`](Ansi::ansi) method.
 ///
-/// Note that the result is a plain `String` whose ANSI codes are now baked-in,
-/// and so can no longer be changed by nesting inside other styles, unlike
-/// [`Styled<T>`].
+/// Returns a [`StyledString`], which differs from a plain [`String`] in that the
+/// contained [`Ansi`] styles can still be overridden by nesting the [`StyledString`]
+/// in a [`styled_format`] or [`styled_format_args`].
+///
+/// Note that this capability comes with some additional runtime overhead. Therefore in
+/// performance-critical situations, [`styled_format_args`] is preferable, since it
+/// is more efficient with minimal runtime overhead.
 ///
 /// ### Example
 /// ```
-/// use ansiconst::{*, Colour::Red, Effect::{Italic, Blink}};
+/// use ansiconst::styled_format;
 ///
 /// let pet = "cat";
 /// let age = 5;
 /// let styled_string = styled_format!(Red.bg(), Italic, Blink, "My {} is {} years old", pet, age);
 ///
 /// assert_eq!(
-///     styled_string,
+///     styled_string.to_string(),
 ///     "\x1B[3;5;41mMy cat is 5 years old\x1B[23;25;49m"
+/// );
+///
+/// // Override the style
+/// assert_eq!(
+///     styled_format!(Ansi::no_ansi(), "{}", styled_string).to_string(),
+///     "My cat is 5 years old"
 /// );
 /// ```
 #[macro_export]
 macro_rules! styled_format {
     ($($args:tt)*) => {{
-        $crate::styled_format_args!($($args)*).to_string()
+        $crate::styled_format_args!($($args)*).to_styled_string()
     }}
 }
 
-/// Like [`format_args!`] except creates ANSI-styled `Arguments`.
+/// Like [`format_args!`] except creates ANSI-styled [`Arguments`](std::fmt::Arguments).
 ///
 /// The syntax is the same as [`format_args!`], except that any parameters before the
-/// format literal must be either instances of [`Ansi`], [`Colour`] or [`Effect`],
-/// or else values that have an `ansi()` method.
+/// format literal must be either instances of [`Ansi`], [`Color`] or [`Effect`],
+/// or else values that have an [`ansi()`](Ansi::ansi) method.
 ///
 /// Returns a [`Styled<std::fmt::Arguments>`].
 ///
 /// ### Example
 /// ```
-/// use ansiconst::{*, Colour::Red, Effect::{Italic, Blink}};
+/// use ansiconst::styled_format_args;
 ///
 /// let pet = "cat";
 /// let age = 5;
@@ -356,24 +384,24 @@ macro_rules! styled_format {
 #[macro_export]
 macro_rules! styled_format_args {
     // Base case:
-    ($ansi:expr, $lit:literal $(,)?) => ($crate::Styled::new($ansi.ansi(), format_args!($lit)));
+    ($ansi:expr, $lit:literal $(,)?) => ($crate::Styled::new($crate::ansi!($ansi), format_args!($lit)));
     // Base case:
-    ($ansi:expr, $lit:literal, $($args:tt)*) => ($crate::Styled::new($ansi.ansi(), format_args!($lit, $($args)*)));
+    ($ansi:expr, $lit:literal, $($args:tt)*) => ($crate::Styled::new($crate::ansi!($ansi), format_args!($lit, $($args)*)));
     // Recurse:
     ($x:expr, $y:expr, $($args:tt)+) => (
-        $crate::styled_format_args!($x.ansi().add($y.ansi()), $($args)+)
+        $crate::styled_format_args!($crate::ansi!($x).add($crate::ansi!($y)), $($args)+)
     )
 }
 
 /// Like [`write!`] except with ANSI-styled output.
 ///
 /// The syntax is the same as [`write!`], except that any parameters before the
-/// format literal must be either instances of [`Ansi`], [`Colour`] or [`Effect`],
-/// or else values that have an `ansi()` method.
+/// format literal must be either instances of [`Ansi`], [`Color`] or [`Effect`],
+/// or else values that have an [`ansi()`](Ansi::ansi) method.
 ///
 /// ### Example
 /// ```
-/// use ansiconst::{*, Colour::Red, Effect::{Italic, Blink}};
+/// use ansiconst::styled_write;
 /// use std::fmt::Write;
 ///
 /// let pet = "cat";
@@ -396,12 +424,12 @@ macro_rules! styled_write {
 /// Like [`writeln!`] except with ANSI-styled output.
 ///
 /// The syntax is the same as [`writeln!`], except that any parameters before the
-/// format literal must be either instances of [`Ansi`], [`Colour`] or [`Effect`],
-/// or else values that have an `ansi()` method.
+/// format literal must be either instances of [`Ansi`], [`Color`] or [`Effect`],
+/// or else values that have an [`ansi()`](Ansi::ansi) method.
 ///
 /// ### Example
 /// ```
-/// use ansiconst::{*, Colour::Red, Effect::{Italic, Blink}};
+/// use ansiconst::styled_writeln;
 /// use std::fmt::Write;
 ///
 /// let pet = "cat";
@@ -425,14 +453,14 @@ macro_rules! styled_writeln {
 /// Like [`print!`] except with ANSI-styled output.
 ///
 /// The syntax is the same as [`print!`], except that any parameters before the
-/// format literal must be either instances of [`Ansi`], [`Colour`] or [`Effect`],
-/// or else values that have an `ansi()` method.
+/// format literal must be either instances of [`Ansi`], [`Color`] or [`Effect`],
+/// or else values that have an [`ansi()`](Ansi::ansi) method.
 ///
 /// Prints to [`io::ansiout()`], which may optionally disable ANSI-styles.
 ///
 /// ### Example
 /// ```
-/// use ansiconst::{paint, Colour::Red, Effect::{Italic, Blink}};
+/// use ansiconst::paint;
 ///
 /// let pet = "cat";
 /// let age = 5;
@@ -454,14 +482,14 @@ macro_rules! paint {
 /// Like [`println!`] except with ANSI-styled output.
 ///
 /// The syntax is the same as [`println!`], except that any parameters before the
-/// format literal must be either instances of [`Ansi`], [`Colour`] or [`Effect`],
-/// or else values that have an `ansi()` method.
+/// format literal must be either instances of [`Ansi`], [`Color`] or [`Effect`],
+/// or else values that have an [`ansi()`](Ansi::ansi) method.
 ///
 /// Prints to [`io::ansiout()`], which may optionally disable ANSI-styles.
 ///
 /// ### Example
 /// ```
-/// use ansiconst::{paintln, Colour::Red, Effect::{Italic, Blink}};
+/// use ansiconst::paintln;
 ///
 /// let pet = "cat";
 /// let age = 5;
@@ -484,14 +512,14 @@ macro_rules! paintln {
 /// Like [`eprint!`] except with ANSI-styled output.
 ///
 /// The syntax is the same as [`eprint!`], except that any parameters before the
-/// format literal must be either instances of [`Ansi`], [`Colour`] or [`Effect`],
-/// or else values that have an `ansi()` method.
+/// format literal must be either instances of [`Ansi`], [`Color`] or [`Effect`],
+/// or else values that have an [`ansi()`](Ansi::ansi) method.
 ///
 /// Prints to [`io::ansierr()`], which may optionally disable ANSI-styles.
 ///
 /// ### Example
 /// ```
-/// use ansiconst::{epaint, Colour::Red, Effect::{Italic, Blink}};
+/// use ansiconst::epaint;
 ///
 /// let pet = "cat";
 /// let age = 5;
@@ -513,14 +541,14 @@ macro_rules! epaint {
 /// Like [`eprintln!`] except with ANSI-styled output.
 ///
 /// The syntax is the same as [`eprintln!`], except that any parameters before the
-/// format literal must be either instances of [`Ansi`], [`Colour`] or [`Effect`],
-/// or else values that have an `ansi()` method.
+/// format literal must be either instances of [`Ansi`], [`Color`] or [`Effect`],
+/// or else values that have an [`ansi()`](Ansi::ansi) method.
 ///
 /// Prints to [`io::ansierr()`], which may optionally disable ANSI-styles.
 ///
 /// ### Example
 /// ```
-/// use ansiconst::{epaintln, Colour::Red, Effect::{Italic, Blink}};
+/// use ansiconst::epaintln;
 ///
 /// let pet = "cat";
 /// let age = 5;

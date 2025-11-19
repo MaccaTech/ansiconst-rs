@@ -1,8 +1,8 @@
 [package]
 name = "ansiconst"
-version = "0.1.1"
+version = "0.2.1"
 edition = "2021"
-rust-version = "1.73"
+rust-version = "1.83"
 authors = ["Macca Tech Ltd <info@macca.tech>", "Francis McKenzie <francis@macca.tech>"]
 description = "Library for declaring nestable ANSI styles in const context"
 license = "MIT"
@@ -14,8 +14,8 @@ exclude = [
 ]
 
 [features]
-ansi256 = []
-rgb = ["ansi256"]
+color256 = []
+rgb = ["color256"]
 
 [dependencies]
 bitflags = "2.5.0"

@@ -64,6 +64,7 @@ impl Ansierr {
 impl AnsiWrite for Ansiout {
     fn ansi(&self) -> Ansi {
         // Note: actually safe, because we're holding a StdoutLock
+        #[allow(static_mut_refs)]
         unsafe {
             match ANSIOUT.get() {
                 None => {
@@ -78,6 +79,7 @@ impl AnsiWrite for Ansiout {
 
     fn set_ansi(&mut self, ansi: Ansi) {
         // Note: actually safe, because we're holding a StdoutLock
+        #[allow(static_mut_refs)]
         unsafe { ANSIOUT.set(Some(ansi)); }
     }
 }
@@ -85,6 +87,7 @@ impl AnsiWrite for Ansiout {
 impl AnsiWrite for Ansierr {
     fn ansi(&self) -> Ansi {
         // Note: actually safe, because we're holding a StderrLock
+        #[allow(static_mut_refs)]
         unsafe {
             match ANSIERR.get() {
                 None => {
@@ -99,6 +102,7 @@ impl AnsiWrite for Ansierr {
 
     fn set_ansi(&mut self, ansi: Ansi) {
         // Note: actually safe, because we're holding a StderrLock
+        #[allow(static_mut_refs)]
         unsafe { ANSIERR.set(Some(ansi)); }
     }
 }

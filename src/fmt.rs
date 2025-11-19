@@ -1,44 +1,28 @@
-use crate::ansi::{Ansi, Colour, Colours, Effect, Effects};
-use crate::write::run_time::Formatter;
-
+mod display;
+mod string;
+use display::StyledDisplay;
+use string::ToStyledString;
+pub use string::StyledString;
+use crate::Ansi;
 use std::fmt;
-use std::cell::Cell;
 use std::ops::Deref;
-
-#[inline]
-fn fmt_ansi(f: &mut fmt::Formatter<'_>, ansi: Ansi, allow_alternate: bool) -> fmt::Result {
-    Formatter::fmt_ansi(f, if allow_alternate && f.alternate() { ansi.not() } else { ansi })
-}
-
-impl fmt::Display for Effect {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt_ansi(f, self.ansi(), true)
-    }
-}
-impl fmt::Display for Effects {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt_ansi(f, Ansi::from_effect(*self), true)
-    }
-}
-impl fmt::Display for Colour {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt_ansi(f, self.ansi(), true)
-    }
-}
-impl fmt::Display for Colours {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt_ansi(f, Ansi::from_colour(*self), true)
-    }
-}
-impl fmt::Display for Ansi {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt_ansi(f, *self, true)
-    }
-}
 
 /// Associates a [`Display`](std::fmt::Display) *target* with an [`Ansi`] *style*,
 /// such that formatting produces the result of formatting the *target*
 /// with the *style's* ANSI codes wrapped around it.
+///
+/// Instances of `Styled<T>`:
+///
+/// - are usually created using the [`styled!`](crate::styled!) or
+/// [`styled_format_args!`](crate::styled_format_args!) macros.
+/// - can be converted to a plain [`String`] with [`to_string`](std::string::ToString::to_string),
+/// or by using the [`format!`] macro.
+///
+/// *Note: this library provides a similarly-named [`StyledString`], which offers the same
+/// functionality as `Styled<T>` but wraps a plain [`String`] internally. While this offers
+/// more convenience for certain use cases, there is additional runtime overhead.*
+///
+/// ## Discussion
 ///
 /// At first glance, it may seem this struct is not strictly necessary.
 /// Without relying on `Styled<T>`, an [`Ansi`] instance can be converted
@@ -46,10 +30,10 @@ impl fmt::Display for Ansi {
 /// [`ansi_code`](crate::ansi_code) macro. For example:
 ///
 /// ```
-/// use ansiconst::{ansi_code, Colour::Red};
+/// use ansiconst::ansi_code;
 ///
 /// const RED:     &str = ansi_code!(Red);
-/// const NOT_RED: &str = ansi_code!(Red.not());
+/// const NOT_RED: &str = ansi_code!(Color::reset());
 ///
 /// assert_eq!(RED,     "\x1B[31m");
 /// assert_eq!(NOT_RED, "\x1B[39m");
@@ -74,20 +58,20 @@ impl fmt::Display for Ansi {
 /// ##### Examples
 ///
 /// ```
-/// use ansiconst::{*, Colour::{Red, Green}, Effect::Bold};
+/// use ansiconst::{ansi_code, paintln, styled, Styled};
 ///
 /// // -------------------------------
 /// // Approach #1: using &'static str
 /// // -------------------------------
 ///
-/// const RED:            &str = ansi_code!(Red);                     // "\x1B[31m"
-/// const NOT_RED:        &str = ansi_code!(Red.not());               // "\x1B[39m"
-/// const GREEN_BOLD:     &str = ansi_code!(Green, Bold);             // "\x1B[1;32m"
-/// const NOT_GREEN_BOLD: &str = ansi_code!(Green.not(), Bold.not()); // "\x1B[22;39m"
+/// const RED:            &str = ansi_code!(Red);                        // "\x1B[31m"
+/// const NOT_RED:        &str = ansi_code!(Color::reset());             // "\x1B[39m"
+/// const GREEN_BOLD:     &str = ansi_code!(Green, Bold);                // "\x1B[1;32m"
+/// const NOT_GREEN_BOLD: &str = ansi_code!(Color::reset(), Bold.not()); // "\x1B[22;39m"
 ///
 /// let inner = format!("{GREEN_BOLD}this is green bold{NOT_GREEN_BOLD}");
 /// // Notice how {RED} has to be re-printed after {inner},
-/// // because NOT_GREEN_BOLD resets the foreground colour.
+/// // because NOT_GREEN_BOLD resets the foreground color.
 /// println!("{RED}This is red {inner}{RED} this is red again{NOT_RED}");
 ///
 /// // ----------------------------
@@ -103,15 +87,15 @@ impl fmt::Display for Ansi {
 ///
 /// Nested ANSI styles can be *disabled entirely*, or else have specific ANSI attributes
 /// suppressed. This is achieved by using any of this crate's printing/writing/styling macros
-/// to style output with an [`Ansi`] style that has [`protected`](Ansi::protected_attrs())
+/// to style output with an [`Ansi`] style that has [`important`](Ansi::important())
 /// attributes set. Under the hood, the macros create an outer [`Styled<Arguments`>]
-/// containing an [`Ansi`] with `protected` attributes that prevent the rendering of those
-/// same attributes in any nested `Styled`.
+/// containing an [`Ansi`] with `important` attributes that override those
+/// same attributes in any nested `Styled` whose attributes are not `important`.
 ///
 /// ##### Examples
 ///
 /// ```
-/// use ansiconst::{*, Colour::*};
+/// use ansiconst::{Styled, styled, styled_format_args, paintln};
 ///
 /// const RED_MSG: Styled<&str> = styled!(Red, "Hello world!");
 ///
@@ -127,11 +111,27 @@ impl fmt::Display for Ansi {
 /// paintln!(Ansi::no_ansi(), "{}", RED_MSG);
 ///
 /// // Prints "\x1B[34mHello world!\x1B[39m\n"
-/// // I.e. in Blue, because outer Blue is protected so nested Red is ignored
-/// paintln!(Blue.only(), "{}", RED_MSG);
+/// // I.e. in Blue, because outer Blue is important so nested Red is ignored
+/// paintln!(Blue.important(), "{}", RED_MSG);
+///
+/// // --------------------------------------------------
+/// // Check the above is correct by capturing the output
+/// // --------------------------------------------------
+///
+/// // Red
+/// assert_eq!("\x1B[31mHello world!\x1B[39m",
+///            format!("{}", RED_MSG));
+///
+/// // Plain
+/// assert_eq!("Hello world!",
+///            styled_format_args!(Ansi::no_ansi(), "{}", RED_MSG).to_string());
+///
+/// // Blue
+/// assert_eq!("\x1B[34mHello world!\x1B[39m",
+///            styled_format_args!(Blue.important(), "{}", RED_MSG).to_string());
 /// ```
 ///
-/// ## Discussion
+/// ## How It Works
 ///
 /// When a `Styled<T>` is formatted, it has no knowledge of whether or
 /// not its nested target also contains `Styled<XYZ>` instances that
@@ -140,7 +140,7 @@ impl fmt::Display for Ansi {
 /// there needs to be some kind of communication of the last-formatted style
 /// between the nesting levels.
 ///
-/// Ideally, Rust's standard library would allow specifying a custom [`Formatter`](`std::fmt::Formatter`)
+/// Ideally, Rust's standard library would allow specifying a custom [`Formatter`](std::fmt::Formatter)
 /// with the ability to hold arbitrary state. This way, it would be possible
 /// for a parent `Styled<T>` to pass the current [`Ansi`] style to its children
 /// during formatting, so that they could determine the ANSI codes required
@@ -157,9 +157,7 @@ impl fmt::Display for Ansi {
 /// # Examples
 ///
 /// ```
-/// use ansiconst::*;
-/// use ansiconst::Colour::{Red, Green, Blue};
-/// use ansiconst::Effect::{Italic, Faint};
+/// use ansiconst::styled_format_args;
 ///
 /// assert_eq!(
 ///     styled_format_args!(Red, "Red {} Red",
@@ -187,7 +185,7 @@ impl<T: fmt::Display> Styled<T> {
     pub const fn new(ansi: Ansi, target: T) -> Styled<T> { Self { ansi, target } }
     /// Creates an instance with an unspecified [`Ansi`] style and the given target
     #[inline]
-    pub const fn unstyled(target: T) -> Styled<T> { Self { ansi: Ansi::unspecified(), target } }
+    pub const fn unstyled(target: T) -> Styled<T> { Self { ansi: Ansi::empty(), target } }
     /// Gets the [`Ansi`] style
     #[inline]
     pub const fn ansi(&self) -> Ansi { self.ansi }
@@ -206,25 +204,22 @@ impl<T: fmt::Display> Styled<T> {
     {
         Styled::new(self.ansi, self.target.deref())
     }
+
+    /// Formats this instance to a [`StyledString`].
+    #[inline]
+    pub fn to_styled_string(&self) -> StyledString {
+        StyledString::from(self)
+    }
 }
 
 impl<T: fmt::Display> fmt::Display for Styled<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        thread_local!(static ANSI: Cell<Ansi> = Cell::new(Ansi::unspecified()));
-        let old_ansi = ANSI.get();
-        let new_ansi = old_ansi.add(self.ansi);
-        // Uncomment for debugging:
-        // println!("[DISPLAY]\nold: {:?}\nnew: {:?}\nres: {:?}", old_ansi, self.ansi, new_ansi);
-        if new_ansi == old_ansi {
-            return self.target.fmt(f);
+        match ToStyledString::fmt_styled_begin(f, self.ansi)? {
+            Some(to_styled_string) => {
+                StyledDisplay::ToStyledString.fmt_styled(f, self)?;
+                to_styled_string.fmt_styled_end(f)
+            },
+            None => StyledDisplay::Default.fmt_styled(f, self),
         }
-        let old_to_new = old_ansi.transition(new_ansi);
-        let new_to_old = new_ansi.transition(old_ansi);
-        ANSI.set(new_ansi);
-        fmt_ansi(f, old_to_new, false)?;
-        self.target.fmt(f)?;
-        fmt_ansi(f, new_to_old, false)?;
-        ANSI.set(old_ansi);
-        Ok(())
     }
 }

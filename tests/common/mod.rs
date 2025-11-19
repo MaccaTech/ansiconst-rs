@@ -1,10 +1,31 @@
 #![allow(dead_code)]
 
+pub mod case;
+pub mod expect;
 use std::str;
 
-pub fn check_fmt<S: AsRef<str>>(expect: &str, got: S) {
-    println!("{: <8}{}\n{: <8}{}", "Expect:", expect, "Got:", got.as_ref());
-    assert_eq!(expect, got.as_ref());
+#[macro_export]
+macro_rules! assert_eq_print {
+    // Base case:
+    ($x:expr, $y:expr $(,)?) => {
+        println!("{: <8}{}\n{: <8}{}", "Expect:", $x, "Got:", $y);
+        assert_eq!($x, $y)
+    };
+    // Internal:
+    (GOT_MORE: $x:expr, $y:expr $(,)?) => {
+        println!("{: <8}{}", "Got:", $y);
+        assert_eq!($x, $y)
+    };
+    // Recurse internal:
+    (GOT_MORE: $x:expr, $y:expr, $($z:tt)+) => {
+        assert_eq_print!(GOT_MORE: $x, $y);
+        assert_eq_print!(GOT_MORE: $x, $($z)+);
+    };
+    // Recurse:
+    ($x:expr, $y:expr, $($z:tt)+) => {
+        assert_eq_print!($x, $y);
+        assert_eq_print!(GOT_MORE: $x, $($z)+);
+    };
 }
 
 pub struct TestLines<'a> {
